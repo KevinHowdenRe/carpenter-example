@@ -1,0 +1,11 @@
+
+/* Lien actif */
+#top-links .nav-link.active,
+#side-links .nav-link.active,
+#side-links-lg .nav-link.active {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+/* Images des cards */
+.card-img-top { object-fit: cover; height: 160px; }
