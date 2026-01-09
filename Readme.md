@@ -1,163 +1,271 @@
-# 📚 Projet SPA (vanilla + Carpenter) — Guide d’architecture (mise à jour)
+# 📚 Projet SPA (vanilla + Carpenter) — Guide complet (brut Markdown)
 
-Ce projet est une **Single-Page App** 100% **client-side** qui fonctionne en `file://` (double‑clic), sans serveur, sans `import/export`, sans `fetch`.
-Le rendu s’appuie sur **Carpenter** et des **blueprints** (objets JSON) : rien n’est écrit en dur dans le HTML.
-Le **routing** est assuré par le **hash** (`#/home`, `#/blog/posts`, `#/apps/catalog`, etc.).
+Ce projet est une **Single‑Page App** 100 % **client‑side** qui fonctionne en `file://` (double‑clic), sans serveur, sans `import/export`, sans `fetch`.  
+Le rendu s’appuie sur **Carpenter** et des **blueprints** (objets JSON) : rien n’est écrit en dur dans le HTML.  
+Le **routing** est assuré par le **hash** (`#/home`, `#/blog/posts`, `#/apps/catalog`, …).
 
 ---
 
 ## 📁 Arborescence
 
 ```
-/
-├─ index.html
+static/
+│  index.html                 ← body vide (tout est injecté via blueprints)
+│
+├─ css/
+│   └─ custom.css
+│
 └─ js/
-   ├─ core/
-   │  └─ helpers.js
-   ├─ config/
-   │  ├─ site.js
-   │  ├─ role.js
-   │  ├─ menus.js
-   │  └─ shell.js
-   ├─ components/
-   │  ├─ common.js
-   │  ├─ blog.components.js
-   │  └─ apps.components.js
-   ├─ data/
-   │  ├─ blog.data.js
-   │  └─ apps.data.js
-   ├─ features/
-   │  └─ menus.js
-   ├─ views/
-   │  ├─ home.view.js
-   │  ├─ account.view.js
-   │  ├─ login.view.js
-   │  ├─ blog.view.js
-   │  └─ apps.view.js
-   ├─ router.js
-   └─ runtime.js
+    ├─ configs.classic.js     ← blueprints (SHELL & composants), menus, données, rôle
+    └─ app.runtime.classic.js ← runtime vanilla : build du shell + menus + hash router
 ```
 
 ---
 
-## 🚦 Ordre de chargement dans `index.html`
+## 📄 `static/index.html`
 
-> **Important** : respecte cet ordre pour que tout soit défini avant le runtime. Pendant les tests, ajoute `?v=timestamp` pour éviter le cache.
+### Rôle du fichier
+- Point d’entrée minimal : charge **styles**, **Carpenter**, **Bootstrap JS**, puis **configs** et **runtime**.
+- `<body>` est **vide** : le **SHELL** (navbar, sidebar, layout) est injecté via **blueprints**.
 
-```html
-<!-- CONFIG -->
-<script src="js/config/site.js?v=20260108"></script>
-<script src="js/config/role.js?v=20260108"></script>
-<script src="js/config/menus.js?v=20260108"></script>
-<script src="js/config/shell.js?v=20260108"></script>
+### Sections principales
+- `<link>` CSS (Bootstrap + `css/custom.css`)
+- `<script>` Carpenter (CDN), Bootstrap bundle
+- `<script>` `js/configs.classic.js` (expose blueprints & données)
+- `<script>` `js/app.runtime.classic.js` (construit shell, menus, router)
 
-<!-- CORE -->
-<script src="js/core/helpers.js?v=20260108"></script>
-
-<!-- COMPONENTS -->
-<script src="js/components/common.js?v=20260108"></script>
-<script src="js/components/blog.components.js?v=20260108"></script>
-<script src="js/components/apps.components.js?v=20260108"></script>
-
-<!-- DATA (métier) -->
-<script src="js/data/blog.data.js?v=20260108"></script>
-<script src="js/data/apps.data.js?v=20260108"></script>
-
-<!-- FEATURES -->
-<script src="js/features/menus.js?v=20260108"></script>
-
-<!-- VIEWS -->
-<script src="js/views/home.view.js?v=20260108"></script>
-<script src="js/views/account.view.js?v=20260108"></script>
-<script src="js/views/login.view.js?v=20260108"></script>
-<script src="js/views/blog.view.js?v=20260108"></script>
-<script src="js/views/apps.view.js?v=20260108"></script>
-
-<!-- ROUTER + RUNTIME -->
-<script src="js/router.js?v=20260108"></script>
-<script src="js/runtime.js?v=20260108"></script>
-```
+### Templates à modifier
+- Remplacer URLs CDN (Bootstrap, Carpenter) si besoin.
+- Garder l’ordre : **CSS → Carpenter → Bootstrap JS → configs → runtime**.
 
 ---
 
-## 🧩 Structure des modules
+## 📄 `static/js/configs.classic.js`
 
-- **config/** : configuration du site, rôle, menus, shell (blueprint Carpenter)
-- **core/** : helpers DOM et utilitaires globaux
-- **components/** : composants réutilisables (common) et spécifiques (blog, apps)
-- **data/** : données métier (blog, apps)
-- **features/** : logique métier (menus dynamiques, `rebuildMenus`)
-- **views/** : renderviews pour chaque section (home, account, login, blog, apps)
-- **router.js** : dispatch des routes vers les views
-- **runtime.js** : bootstrap de l’app (construction shell, branding, menus, router)
+### Rôle du fichier
+Déclare toutes les **configurations globales** :
+- `SITE` (branding)
+- `ROLE` (rôle courant)
+- `MENUS` (TopBar + Sidebar)
+- `SHELL` (blueprint du layout)
+- `COMPONENTS` (blueprints réutilisables)
+- `DATA` (contenu des pages)
 
----
+### Sections principales
+- **SITE** : titre, identité
+- **ROLE** : rôle courant (`guest`, `user`, `admin`, …)
+- **MENUS** :
+  - `sidebar` = navigation (Home/Blog/Apps)
+  - `topnav`  = liens compte
+  - `actions` = login/logout
+- **SHELL** : blueprints de **TopBar**, **offcanvas sidebar**, **layout** avec `#app-root`
+- **COMPONENTS** : fonctions → blueprints (`GridRow`, `BlogCard`, `AppView`, …)
+- **DATA** : objets métier (articles, apps…)
 
-## 📰 Blog — Layout "Clean Blog"
-
-- **Listing `/blog/posts`** : bande **Hero** (cover + overlay) + **previews verticales** (titre, sous‑titre, meta) sans card.
-- **Page article `/blog/post/:slug`** : header + corps centré.
-
-### Configuration du Hero
-Dans `js/config/site.js` :
+### Templates à modifier
+- **Changer le titre** :
 ```js
-window.SITE = {
-  title: "Kitchen Krafts",
-  blogTitle: "Learning by cooking",
-  blogSubtitle: "?",
-  blogImage: "static/assets/blog/cover.jpg" // ou "assets/blog/cover.jpg" selon ton arbo
+window.SITE = { title: "Mon Nouveau Site" };
+```
+
+- **Configurer menus & audience** :
+```js
+window.MENUS = {
+  sidebar: [ { label:"Home", href:"#/home", audience:["guest","user","admin"] } ],
+  topnav:  [ { label:"Mon compte", href:"#/account", audience:["user","admin"] } ],
+  actions: [ { label:"Se connecter", href:"#/login", audience:["guest"] },
+             { label:"Se déconnecter", href:"#/logout", audience:["user","admin"] } ]
 };
+window.ROLE = "guest"; // rôle courant
 ```
-> Le chemin d’image est **relatif à `index.html`** (pas au hash).
 
-### Bonnes pratiques d’injection (2 phases)
-- **Phase A** : injecter **Hero** puis **Container** et **flusher chaque bloc** (`buildBlueprint()` après chaque `newBuilds`).
-- **Phase B** : injecter les **previews dans la colonne** (jamais dans `root`) et flusher.
-
-Extrait :
+- **Ajouter une section (Sidebar)** :
 ```js
-// Phase A
-builder.newBuilds([hero], root);     // hero
-builder.buildBlueprint();             // flush HERO
-builder.newBuilds([container], root); // container
-builder.buildBlueprint();             // flush CONTAINER
+// 1) Déclarer le lien
+window.MENUS.sidebar.push({ label:"FAQ", href:"#/faq", audience:["guest","user","admin"] });
 
-// Phase B
-const column = document.getElementById('blog-list-column')
-             || root.querySelector('.col-12.col-lg-10.col-xl-8');
-if (!column) return;                  // ne pas injecter dans root
-builder.newBuilds(previews, column);
-builder.buildBlueprint();             // flush PREVIEWS
+// 2) (Optionnel) Données
+window.DATA = window.DATA || {};
+window.DATA.faq = [
+  { question: "Comment utiliser l’app ?",  answer: "Naviguez via la barre de gauche (hash routing)." },
+  { question: "Comment gérer l’audience ?", answer: "Modifiez MENUS.*[].audience et window.ROLE." }
+];
+
+// 3) (Optionnel) Composant blueprint
+window.COMPONENTS = window.COMPONENTS || {};
+window.COMPONENTS.FAQItem = ({ question, answer }) => ({
+  item: "div",
+  attributes: { class: "mb-3" },
+  children: [
+    { item: "h5", textContent: question },
+    { item: "p",  textContent: answer }
+  ]
+});
 ```
 
 ---
 
-## ⚠️ Avertissement — Carpenter `newBuilds` / `buildBlueprint`
+## 📄 `static/js/app.runtime.classic.js`
 
-**Symptôme** : le *hero* disparaît après le rendu, ou la liste des articles remplace le contenu précédent.
+### Rôle du fichier
+- Construit le **SHELL** via Carpenter (au `DOMContentLoaded`).
+- Monte les menus (TopBar & Sidebar), filtrés par `ROLE`.
+- Démarre le **hash‑router** (Home, Blog, Apps, Account, Login, Logout). 
 
-**Cause** : dans Carpenter, chaque appel à `newBuilds(...)` alimente une **file interne**. Si plusieurs `newBuilds` sont enchaînés **sans** `buildBlueprint()` intermédiaire, **seule la dernière file est rendue**, écrasant ainsi le rendu déjà injecté (ex. le *hero*).
+### Sections principales
+- **Helpers** : `killChildren`, `filterByAudience`, `linkItem`, `actionItem`.
+- **Menus** : `rebuildMenus(builder)` reconstruit TopBar/Sidebar selon `ROLE`.
+- **Router** :
+  - `renderHome`, `renderBlog(posts|post/<slug>)`, `renderApps(catalog|app/<id>)`.
+  - `renderAccount`, `renderLogin` (simulation login), `logout`.
+- **Bootstrap global** :
+  - `builder.newBuilds(SHELL, document.body)` + `builder.buildBlueprint()`.
+  - branding (titre), `rebuildMenus(builder)`.
+  - `hashchange` + `renderFromHash(builder)`.
 
-**À éviter** :
-- `builder.newBuilds(previews, root)` après le *hero* → **écrase** le *hero*.
-- Un **second** `killChildren(root)` après l’injection du *hero/container*.
+### Rendu : filtrage par audience
+```js
+function filterByAudience(list, role) {
+  return (list || []).filter(i => !i.audience || i.audience.includes(role));
+}
 
-**Checklist** :
-- `components` chargés **avant** `views`, puis `router`, puis `runtime`.
-- Chemins d’images **relatifs à `index.html`**.
-- Pendant les tests, ajouter `?v=timestamp` aux `<script>` pour éviter le **cache**.
+function rebuildMenus(builder) {
+  const role     = window.ROLE || 'guest';
+  const topLinks = document.getElementById('top-links');
+  const topActs  = document.getElementById('top-actions');
+  const sideMob  = document.getElementById('side-links');
+  const sideLg   = document.getElementById('side-links-lg');
+
+  const topnav  = filterByAudience(window.MENUS.topnav,  role);
+  const actions = filterByAudience(window.MENUS.actions, role);
+  const sidebar = filterByAudience(window.MENUS.sidebar, role);
+
+  killChildren(topLinks); killChildren(topActs);
+  killChildren(sideMob);  killChildren(sideLg);
+
+  if (topLinks) { builder.newBuilds(topnav.map(linkItem),   topLinks); builder.buildBlueprint(); }
+  if (topActs)  { builder.newBuilds(actions.map(actionItem), topActs); builder.buildBlueprint(); }
+  if (sideMob)  { builder.newBuilds(sidebar.map(linkItem),   sideMob); builder.buildBlueprint(); }
+  if (sideLg)   { builder.newBuilds(sidebar.map(linkItem),   sideLg);  builder.buildBlueprint(); }
+}
+```
+
+### Changement de rôle (simulation)
+```js
+// Login simulé
+window.ROLE = 'user';
+rebuildMenus(builder);
+location.hash = '#/account';
+
+// Logout simulé
+window.ROLE = 'guest';
+rebuildMenus(builder);
+location.hash = '#/home';
+```
+
+### Persistance du rôle (optionnelle)
+```js
+// À l'initialisation
+window.ROLE = localStorage.getItem('role') || window.ROLE || 'guest';
+
+// À chaque changement de rôle
+localStorage.setItem('role', window.ROLE);
+```
+
+### Protection des routes par rôle (guard)
+```js
+function renderAccount(builder, root) {
+  const role = window.ROLE || 'guest';
+  if (role === 'guest') {
+    builder.newBuilds([{ item:'div', attributes:{ class:'alert alert-info' }, textContent:'Veuillez vous connecter.' }], root);
+    builder.buildBlueprint();
+    return;
+  }
+  // ... contenu authentifié
+}
+```
 
 ---
 
-## 🛠️ Déploiement
+## 📄 `static/css/custom.css`
 
-- **Aucune compilation** requise.
-- Hébergement statique (GitHub Pages, Netlify, S3, etc.).
-- Ouvre simplement `/index.html` dans le navigateur.
+### Rôle
+Styles complémentaires (liens actifs, cartes, etc.).
+
+### Templates à modifier
+```css
+/* Liens actifs */
+#top-links .nav-link.active,
+#side-links .nav-link.active,
+#side-links-lg .nav-link.active {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+/* Cartes */
+.card-img-top { object-fit: cover; height: 160px; }
+```
 
 ---
 
-## 👤 Auteur
+## ➕ Exemple complet : **ajout d’une section Sidebar “FAQ”**
 
-Kevin Vu  
-Architecture modulaire inspirée par la logique Carpenter SPA.
+### 1) Déclarer le lien (Sidebar)
+```js
+// Fichier : static/js/configs.classic.js
+window.MENUS.sidebar.push({ label:"FAQ", href:"#/faq", audience:["guest","user","admin"] });
+```
+
+### 2) (Optionnel) Ajouter des données
+```js
+// Fichier : static/js/configs.classic.js
+window.DATA = window.DATA || {};
+window.DATA.faq = [
+  { question: "Comment utiliser l’app ?",  answer: "Naviguez via la barre de gauche (hash routing)." },
+  { question: "Comment gérer l’audience ?", answer: "Modifiez MENUS.*[].audience et window.ROLE." }
+];
+```
+
+### 3) (Optionnel) Définir un composant blueprint
+```js
+// Fichier : static/js/configs.classic.js
+window.COMPONENTS = window.COMPONENTS || {};
+window.COMPONENTS.FAQItem = ({ question, answer }) => ({
+  item: "div",
+  attributes: { class: "mb-3" },
+  children: [
+    { item: "h5", textContent: question },
+    { item: "p",  textContent: answer }
+  ]
+});
+```
+
+### 4) Implémenter le rendu dans le router
+```js
+// Fichier : static/js/app.runtime.classic.js
+function renderFAQ(builder, root) {
+  const items = (window.DATA.faq || []).map(q => window.COMPONENTS.FAQItem(q));
+  builder.newBuilds([{ item: 'h1', attributes: { class: 'h3 mb-3' }, textContent: 'FAQ' }], root);
+  builder.newBuilds(items, root);
+  builder.buildBlueprint();
+}
+```
+
+### 5) Brancher la route
+```js
+// Fichier : static/js/app.runtime.classic.js (dans renderFromHash)
+if (section === 'faq') return renderFAQ(builder, root);
+```
+
+### 6) Tester
+- Aller sur `#/faq` pour afficher la section.
+
+---
+
+## ✅ Bonnes pratiques
+- **Déclarer l’audience** pour chaque entrée de menu (`audience: [...]`).
+- **Reconstruire les menus** (`rebuildMenus(builder)`) après un changement de rôle.
+- **Protéger les routes** sensibles avec un guard (`ROLE` en début de rendu).
+- **Optionnel : persister** le rôle dans `localStorage`.
+
+---
